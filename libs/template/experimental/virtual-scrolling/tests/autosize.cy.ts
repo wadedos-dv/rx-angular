@@ -13,7 +13,10 @@ import {
   RxVirtualScrollViewportComponent,
   RxVirtualScrollWindowDirective,
 } from '../src';
-import { DEFAULT_ITEM_SIZE } from '../src/lib/virtual-scroll.config';
+import {
+  DEFAULT_ITEM_SIZE,
+  DEFAULT_RUNWAY_ITEMS_OPPOSITE,
+} from '../src/lib/virtual-scroll.config';
 import {
   defaultMountConfig,
   generateItems,
@@ -557,6 +560,41 @@ describe('rendering, scrolling & positioning', () => {
       cy.get('@viewRange').should('have.been.calledWith', range);
     });
   });
+  it('scrolls to last index', () => {
+    mountAutoSize().then(({ fixture, component }) => {
+      fixture.detectChanges();
+      const viewportComponent = getViewportComponent(fixture);
+      const items = component.items as Item[];
+      const lastIndex = items.length - 1;
+
+      viewportComponent.scrollToIndex(lastIndex);
+
+      const range = expectedRange(
+        { ...component, dynamicSize: () => component.tombstoneSize },
+        items,
+        lastIndex,
+        'down',
+      );
+
+      cy.get('@viewRange')
+        .its('lastCall.args.0')
+        .then((viewRange: ListRange) => {
+          expect(viewRange.start).to.be.within(
+            range.start - DEFAULT_RUNWAY_ITEMS_OPPOSITE * 4,
+            range.start,
+          );
+          expect(viewRange.end).to.eq(range.end);
+        });
+
+      cy.get('@scrolledIndex')
+        .its('lastCall.args.0')
+        .should(
+          'be.within',
+          lastIndex - DEFAULT_RUNWAY_ITEMS_OPPOSITE * 4,
+          lastIndex,
+        );
+    });
+  });
 });
 
 describe('data mutations', () => {
@@ -588,6 +626,48 @@ describe('data mutations', () => {
             expect(item.text().trim()).to.be.eq('1');
             expect(item.attr('style')).to.contain(`translateY(0px)`);
           });
+      });
+    });
+    it('should remove last item', () => {
+      mountAutoSize().then(({ fixture }) => {
+        fixture.detectChanges();
+        const mountedComponent = fixture.componentInstance;
+        const viewportComponent = getViewportComponent(fixture);
+        const items = mountedComponent.items as Item[];
+        const lastIndex = items.length - 1;
+
+        viewportComponent.scrollToIndex(lastIndex);
+
+        cy.get('@scrolledIndex')
+          .its('lastCall.args.0')
+          .should(
+            'be.within',
+            lastIndex - DEFAULT_RUNWAY_ITEMS_OPPOSITE * 4,
+            lastIndex,
+          );
+
+        cy.get('@renderCallback').should('have.been.called');
+
+        cy.get('[data-cy=item]')
+          .last()
+          .then((item) => {
+            expect(item.text().trim()).to.be.contain('499');
+          });
+
+        cy.get('@renderCallback').invoke('resetHistory');
+
+        cy.then(() => {
+          (mountedComponent.items as Item[]).splice(lastIndex, 1);
+          fixture.detectChanges();
+
+          cy.get('@renderCallback').should('have.been.called');
+
+          cy.get('[data-cy=item]')
+            .last()
+            .then((item) => {
+              expect(item.text().trim()).to.be.contain('498');
+            });
+        });
       });
     });
     it('should render mutable sort', () => {

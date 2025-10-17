@@ -518,7 +518,7 @@ export class AutoSizeVirtualScrollStrategy<
             start: Math.max(0, this.anchorItem.index - this.runwayItems),
             end: dataLength,
           };
-          this.scrollTo(size);
+          this.scrollTo(this.anchorScrollTop);
           this.scrollTop = this.anchorScrollTop;
         }
         this.contentSize = size;
