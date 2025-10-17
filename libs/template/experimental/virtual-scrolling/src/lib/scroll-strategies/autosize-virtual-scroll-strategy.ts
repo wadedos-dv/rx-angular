@@ -499,20 +499,22 @@ export class AutoSizeVirtualScrollStrategy<
           this.scrollTo(0);
           this.scrollTop = this.anchorScrollTop = 0;
         } else if (dataLength < this._renderedRange.end) {
-          this.anchorItem = this.calculateAnchoredItem(
-            {
-              index: dataLength,
-              offset: 0,
-            },
-            Math.max(
-              -size,
-              -calculateVisibleContainerSize(
-                this.containerSize,
-                this.scrollTopWithOutOffset,
-                this.scrollTopAfterOffset,
+          if (this.lastScreenItem.index > dataLength) {
+            this.anchorItem = this.calculateAnchoredItem(
+              {
+                index: dataLength,
+                offset: 0,
+              },
+              Math.max(
+                -size,
+                -calculateVisibleContainerSize(
+                  this.containerSize,
+                  this.scrollTopWithOutOffset,
+                  this.scrollTopAfterOffset,
+                ),
               ),
-            ),
-          );
+            );
+          }
           this.calcAnchorScrollTop();
           this._renderedRange = {
             start: Math.max(0, this.anchorItem.index - this.runwayItems),
@@ -793,6 +795,9 @@ export class AutoSizeVirtualScrollStrategy<
               const view = this.getViewRef(viewIdx);
               const itemIndex = view.context.index;
               const virtualItem = this._virtualItems[itemIndex];
+              if (!virtualItem) {
+                break;
+              }
               const element = this.getElement(view);
               this.updateElementSize(view, itemIndex);
               virtualItem.position = position;
